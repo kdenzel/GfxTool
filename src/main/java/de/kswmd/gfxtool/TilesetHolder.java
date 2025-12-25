@@ -5,6 +5,7 @@ package de.kswmd.gfxtool;
 
 import de.kswmd.gfxtool.tiles.DmgTile;
 import de.kswmd.gfxtool.tiles.TileExtractingMethod;
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -14,9 +15,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
 
 /**
@@ -25,13 +30,91 @@ import javax.imageio.ImageIO;
  */
 public class TilesetHolder {
 
-    private final Path tilesetImagePath;
+    //16 x 24 = 384 tiles
+    public static int TILESET_HEIGHT_IN_TILES = 24;
+    public static int TILESET_WIDTH_IN_TILES = 16;
+    public static int TILESET_SPRITES_SIZE = 128;
+    public static int TILES_AMOUNT = TILESET_HEIGHT_IN_TILES * TILESET_WIDTH_IN_TILES;
+
+    private final Path[] tilesetImagePaths;
     private final BufferedImage tilesetImage;
-    private final List<DmgTile> dmgTileList = new ArrayList<>();
+    private Collection<DmgTile> dmgTiles = new ArrayList<>();
     private String[] colorPal;
 
+    /**
+     * creates a new Tileset from the given paths
+     *
+     * @param tilesetImagePaths
+     * @param unique
+     * @throws IOException
+     */
+    public TilesetHolder(Path[] tilesetImagePaths, boolean unique, boolean fill) throws IOException {
+        this.tilesetImagePaths = tilesetImagePaths;
+        tilesetImage = new BufferedImage(TILESET_WIDTH_IN_TILES * DmgTile.TILE_DIMENSION, TILESET_HEIGHT_IN_TILES * DmgTile.TILE_DIMENSION, BufferedImage.TYPE_INT_RGB);
+        List<BufferedImage> images = new ArrayList();
+        int pixelAmount = 0;
+        //validate
+        for (Path imgP : tilesetImagePaths) {
+            var tmpImg = ImageIO.read(imgP.toFile());
+            if (!isDimensionMultipleOf8(tmpImg)) {
+                throw new IIOException("Wrong format of image. Width and height must be multiple of 8 pixels.");
+            }
+            images.add(tmpImg);
+            pixelAmount = tmpImg.getWidth() * tmpImg.getHeight() + pixelAmount;
+        }
+
+        if (pixelAmount > TILESET_HEIGHT_IN_TILES * TILESET_WIDTH_IN_TILES * DmgTile.TILE_DIMENSION) {
+            if (unique) {
+                System.out.println("Warning, the range could exceed.");
+            } else {
+                throw new IIOException("Image exceeds the maximum tile size.");
+            }
+        }
+
+        if (unique) {
+            dmgTiles = new LinkedHashSet<>();
+        }
+
+        String[] lastColorPal = null;
+        //collect
+        for (BufferedImage tmpImg : images) {
+            lastColorPal = getColorPalFromImage(tmpImg);
+            List<DmgTile> tmpTileList = new ArrayList<>();
+            for (int y = 0; y < tmpImg.getHeight(); y += DmgTile.TILE_DIMENSION) {
+                for (int x = 0; x < tmpImg.getWidth(); x += DmgTile.TILE_DIMENSION) {
+                    var subImg = tmpImg.getSubimage(x, y, DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION);
+                    var tmpDmgTile = new DmgTile(subImg);
+                    tmpTileList.add(tmpDmgTile);
+                }
+            }
+            //fill sprite region if fill is set
+            if (fill && images.indexOf(tmpImg) == 0) {
+                while (tmpTileList.size() < TILESET_SPRITES_SIZE) {
+                    tmpTileList.add(createRandomDitstinctTileFromColorPal(tmpTileList, lastColorPal));
+                }
+            }
+            dmgTiles.addAll(tmpTileList);
+        }
+        if (fill) {
+            while (dmgTiles.size() < TILES_AMOUNT) {
+                dmgTiles.add(createRandomDitstinctTileFromColorPal(dmgTiles, lastColorPal));
+            }
+        }
+
+        if (dmgTiles.size() > TILESET_HEIGHT_IN_TILES * TILESET_WIDTH_IN_TILES) {
+            throw new IIOException("Image exceeds the maximum tile size.");
+        }
+
+    }
+
+    /**
+     * reads tileset from single image
+     *
+     * @param tilesetImagePath
+     * @throws IOException
+     */
     public TilesetHolder(Path tilesetImagePath) throws IOException {
-        this.tilesetImagePath = tilesetImagePath;
+        this.tilesetImagePaths = new Path[]{tilesetImagePath};
         this.tilesetImage = ImageIO.read(tilesetImagePath.toFile());
     }
 
@@ -41,28 +124,32 @@ public class TilesetHolder {
     }
 
     public void initialize(TileExtractingMethod method) {
-        dmgTileList.clear();
+        dmgTiles.clear();
         for (int y = 0; y < tilesetImage.getHeight(); y += DmgTile.TILE_DIMENSION) {
             for (int x = 0; x < tilesetImage.getWidth(); x += DmgTile.TILE_DIMENSION) {
                 var subImg = tilesetImage.getSubimage(x, y, DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION);
-                dmgTileList.add(new DmgTile(subImg, method, colorPal));
+                dmgTiles.add(new DmgTile(subImg, method, colorPal));
             }
         }
     }
 
     public String[] getColorPalFromTilesetImage() {
+        return getColorPalFromImage(tilesetImage);
+    }
+
+    public String[] getColorPalFromImage(BufferedImage image) {
         Set<String> colorPalSet = new HashSet<>();
-        for (int y = 0; y < tilesetImage.getHeight(); y++) {
-            for (int x = 0; x < tilesetImage.getWidth(); x++) {
-                var rgb = tilesetImage.getRGB(x, y);
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
+                var rgb = image.getRGB(x, y);
                 colorPalSet.add(Integer.toHexString(rgb));
             }
         }
         return colorPalSet.toArray(String[]::new);
     }
 
-    public Path getTilesetImagePath() {
-        return tilesetImagePath;
+    public Path[] getTilesetImagePath() {
+        return tilesetImagePaths;
     }
 
     public BufferedImage getTilesetImage() {
@@ -78,13 +165,73 @@ public class TilesetHolder {
                 && image.getHeight() % DmgTile.TILE_DIMENSION == 0;
     }
 
-    public List<DmgTile> getDmgTiles() {
-        return dmgTileList;
+    /**
+     * makes all Tiles unique
+     */
+    public void uniqueTilesOnly() {
+        dmgTiles = new LinkedHashSet<>(dmgTiles);
+    }
+
+    public Collection<DmgTile> getDmgTiles() {
+        return dmgTiles;
     }
 
     public void writeAllTilesTo2BppBinary(String outputPath) throws FileNotFoundException, IOException {
+        writeAllTiles(outputPath);
+    }
+
+    private DmgTile createRandomDitstinctTile(Collection<DmgTile> tiles) {
+        DmgTile dmgTile = null;
+        do {
+            var bf = new BufferedImage(DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION, BufferedImage.TYPE_INT_RGB);
+            // create random values pixel by pixel
+            for (int y = 0; y < bf.getHeight(); y++) {
+                for (int x = 0; x < bf.getWidth(); x++) {
+                    // generating values less than 256
+                    int a = (int) (Math.random() * 256);
+                    int r = (int) (Math.random() * 256);
+                    int g = (int) (Math.random() * 256);
+                    int b = (int) (Math.random() * 256);
+
+                    //pixel
+                    int p = (a << 24) | (r << 16) | (g << 8) | b;
+
+                    bf.setRGB(x, y, p);
+                }
+                dmgTile = new DmgTile(bf);
+            }
+        } while (tiles.contains(dmgTile));
+        return dmgTile;
+    }
+
+    private DmgTile createRandomDitstinctTileFromColorPal(Collection<DmgTile> tiles, String[] colorPal) {
+        DmgTile dmgTile = null;
+        do {
+            var bf = new BufferedImage(DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION, BufferedImage.TYPE_INT_RGB);
+            // create random values pixel by pixel
+            for (int y = 0; y < bf.getHeight(); y++) {
+                for (int x = 0; x < bf.getWidth(); x++) {
+                    Color c = Color.decode("#"+colorPal[(int)(Math.random()*colorPal.length)].substring(2));
+                    // generating values less than 256
+                    int a = c.getAlpha();
+                    int r = c.getRed();
+                    int g = c.getGreen();
+                    int b = c.getBlue();
+
+                    //pixel
+                    int p = (a << 24) | (r << 16) | (g << 8) | b;
+
+                    bf.setRGB(x, y, p);
+                }
+                dmgTile = new DmgTile(bf);
+            }
+        } while (tiles.contains(dmgTile));
+        return dmgTile;
+    }
+
+    private void writeAllTiles(String outputPath) throws FileNotFoundException, IOException {
         OutputStream fos = new FileOutputStream(outputPath);
-        for (DmgTile t : getDmgTiles()) {
+        for (DmgTile t : dmgTiles) {
             byte[] b = t.get2BppArrayFromTile();
             fos.write(b);
         }
@@ -94,7 +241,7 @@ public class TilesetHolder {
 
     public void createIndices() {
         int i = 0;
-        for (DmgTile dt : dmgTileList) {
+        for (DmgTile dt : dmgTiles) {
             //important modulo cause of casting from int to signed byte
             //only need values from 0 - 255
             //cause of different memory allocation in gameboy it is no problem
@@ -115,11 +262,9 @@ public class TilesetHolder {
                     int i = 0;
                     for (int x = 0; x < bfimg.getWidth(); x += DmgTile.TILE_DIMENSION) {
                         BufferedImage sub = bfimg.getSubimage(x, y, DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION);
-                        boolean matchFound = false;
-                        int index = 0;
-                        for (DmgTile t : dmgTileList) {
+                        int index = Integer.MAX_VALUE;
+                        for (DmgTile t : dmgTiles) {
                             if (t.matches(sub)) {
-                                matchFound = true;
                                 index = t.getIndex();
                                 break;
                             }
@@ -127,8 +272,9 @@ public class TilesetHolder {
 
                         buffer[i] = (byte) (index & 0xFF);
                         i++;
-                        if (!matchFound) {
+                        if (index == Integer.MAX_VALUE) {
                             //TODO: LOG WARN OR STH ELSE
+                            throw new IOException("No tile found...");
                         }
                     }
                     fos.write(buffer);
@@ -145,15 +291,16 @@ public class TilesetHolder {
 
         int x = 0;
         int y = 0;
-        List<DmgTile> tiles = getDmgTiles();
+        Collection<DmgTile> tiles = getDmgTiles();
         for (DmgTile t : tiles) {
             g.drawImage(t.getTileImage(), x, y, null);
-            x = (x + DmgTile.TILE_DIMENSION) % tilesetImage.getWidth();
-            if (x == 0) {
+            x = (x + DmgTile.TILE_DIMENSION);
+            if (x % tilesetImage.getWidth() == 0) {
                 y += DmgTile.TILE_DIMENSION;
+                x = 0;
             }
         }
-        ImageIO.write(nbi, "png", new File(path + ".png"));
+        ImageIO.write(nbi, "png", new File(path));
     }
 
     public int getDmgTileWidth() {

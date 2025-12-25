@@ -24,11 +24,31 @@ public class GfxTool {
     public static void main(String[] args) {
         Options options = new Options();
 
+        options.addOption(Option.builder("crt")
+                .longOpt("createTileSet")
+                .desc("Generates a tileset from specified images")
+                .numberOfArgs(3)
+                .argName("/path/to/sprites.png> </path/to/background.png> </path/to/window.png")
+                .get()
+        );
+
+        options.addOption(Option.builder("f")
+                .longOpt("fill")
+                .desc("Fills spaces from sprites if missing from <crt, createTileSet> when creating Tileset.")
+                .argName("/path/to/sprites.png> </path/to/background.png> </path/to/window.png")
+                .get()
+        );
+
+        options.addOption(Option.builder("u")
+                .longOpt("unique")
+                .desc("Generates a png file from <-crt, --createTileSet> with distinct tiles or reads distinct tiles with option <-o, --output>")
+                .get()
+        );
+
         options.addOption(Option.builder("o")
                 .longOpt("output")
                 .desc("Generates a gameboy 2bpp file from png")
                 .numberOfArgs(2)
-                .required()
                 .argName("/path/to/tileset> </output/file/name")
                 .get()
         );
@@ -69,6 +89,17 @@ public class GfxTool {
                 printHelpMessage(options);
             }
 
+            if (cmd.hasOption("crt")) {
+                String[] values = cmd.getOptionValues("crt");
+                Path[] paths = new Path[values.length];
+                int i = 0;
+                for (String v : values) {
+                    paths[i] = Path.of(v);
+                    i++;
+                }
+                TilesetHolder th = new TilesetHolder(paths, cmd.hasOption("u"), cmd.hasOption("fill"));
+                th.recreatePictureFromDmgTiles(System.getProperty("user.dir") + "/tileset.png");
+            }
             if (cmd.hasOption("o")) {
                 String[] values = cmd.getOptionValues("o");
                 if (values == null || values.length != 2) {
@@ -82,6 +113,7 @@ public class GfxTool {
                 if (!th.isDimensionMultipleOf8()) {
                     throw new ParseException("Image-files dimensions (width and height) must be a multiple of 8");
                 }
+
                 String[] colorPal;
                 if (cmd.hasOption("c")) {
                     String colors = cmd.getOptionValue("c");
@@ -101,6 +133,10 @@ public class GfxTool {
                     th.initialize(TileExtractingMethod.GRAY_SCALE);
                 }
 
+                if (cmd.hasOption("u")) {
+                    th.uniqueTilesOnly();
+                }
+
                 //{"9BBC0F", "8BAC0F", "306230", "0F380F"}
                 th.writeAllTilesTo2BppBinary(outputPath);
 
@@ -109,6 +145,7 @@ public class GfxTool {
                     th.createIndices();
                     th.createDmgTileMaps(paths);
                 }
+
             }
 
         } catch (ParseException ex) {

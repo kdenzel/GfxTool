@@ -5,6 +5,7 @@ package de.kswmd.gfxtool.tiles;
 
 import static de.kswmd.gfxtool.tiles.TileExtractingMethod.GRAY_SCALE;
 import java.awt.image.BufferedImage;
+import java.util.Objects;
 
 /**
  *
@@ -20,8 +21,8 @@ public class DmgTile {
     private String[] colorPal;
 
     private TileExtractingMethod extractingMethod = GRAY_SCALE;
-    
-    private int index = Integer.MAX_VALUE;
+
+    private int index;
 
     public DmgTile(BufferedImage tileImage) {
         this.tileImage = tileImage;
@@ -123,4 +124,39 @@ public class DmgTile {
         }
         return _2bppArray;
     }
+
+    private String hashCodeOfPixels() {
+        int width = tileImage.getWidth();
+        int height = tileImage.getHeight();
+        StringBuilder sb = new StringBuilder();
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                sb.append(tileImage.getRGB(x, y));
+            }
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 17 * hash + Objects.hashCode(this.hashCodeOfPixels());
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final DmgTile other = (DmgTile) obj;
+        return matches(other.tileImage);
+    }
+
 }
