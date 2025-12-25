@@ -5,8 +5,12 @@ package de.kswmd.gfxtool;
 
 import de.kswmd.gfxtool.tiles.TileExtractingMethod;
 import de.kswmd.gfxtool.utils.GfxUtils;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import javax.imageio.ImageIO;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -29,6 +33,14 @@ public class GfxTool {
                 .desc("Generates a tileset from specified images")
                 .numberOfArgs(3)
                 .argName("/path/to/sprites.png> </path/to/background.png> </path/to/window.png")
+                .get()
+        );
+
+        options.addOption(Option.builder("conv")
+                .longOpt("convert")
+                .desc("Converts an image to colorpal defined")
+                .numberOfArgs(2)
+                .argName("/path/to/image.png> <hexcolor1,hexcolor2")
                 .get()
         );
 
@@ -98,8 +110,34 @@ public class GfxTool {
                     i++;
                 }
                 TilesetHolder th = new TilesetHolder(paths, cmd.hasOption("u"), cmd.hasOption("fill"));
-                th.recreatePictureFromDmgTiles(System.getProperty("user.dir") + "/tileset.png");
+                String outputPath = System.getProperty("user.dir") + "/tileset.png";
+                th.recreatePictureFromDmgTiles(outputPath);
+                String[] colorPal;
+                if (cmd.hasOption("c")) {
+                    String colors = cmd.getOptionValue("c");
+                    Path p = Path.of(outputPath);
+                    BufferedImage img = ImageIO.read(p.toFile());
+                    if (colors != null) {
+                        colorPal = colors.split(",");
+                    } else {
+                        colorPal = th.getColorPalArrayFromImage(img);
+                        colorPal = Arrays.copyOf(colorPal, Math.min(4, colorPal.length));
+                    }
+
+                    img = GfxUtils.convertImagePixelsToColorPal(img, colorPal);
+                    ImageIO.write(img, "png", new File(outputPath));
+                }
             }
+
+            if (cmd.hasOption("conv")) {
+                String[] values = cmd.getOptionValues("conv");
+                String vp = values[0];
+                Path p = Path.of(vp);
+                BufferedImage img = ImageIO.read(p.toFile());
+                img = GfxUtils.convertImagePixelsToColorPal(img, values[1].split(","));
+                ImageIO.write(img, "png", new File(vp.replaceAll("\\.png$", ".new.png")));
+            }
+            
             if (cmd.hasOption("o")) {
                 String[] values = cmd.getOptionValues("o");
                 if (values == null || values.length != 2) {
@@ -120,7 +158,7 @@ public class GfxTool {
                     if (colors != null) {
                         colorPal = colors.split(",");
                     } else {
-                        colorPal = th.getColorPalFromTilesetImage();
+                        colorPal = th.getColorPalArrayFromImage();
                     }
 
                     if (cmd.hasOption("scp")) {

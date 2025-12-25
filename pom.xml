@@ -41,7 +41,26 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
+                            <outputDirectory>./target/</outputDirectory>
+                            
+                            <resources>
+                                <resource>
+                                    <includes>
+                                        <include>gfx.jar</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>make-assembly2</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
                             <outputDirectory>../../GBA/tools/</outputDirectory>
+                            
                             <resources>
                                 <resource>
                                     <includes>

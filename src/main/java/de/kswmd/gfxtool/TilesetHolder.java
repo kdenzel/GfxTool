@@ -5,6 +5,7 @@ package de.kswmd.gfxtool;
 
 import de.kswmd.gfxtool.tiles.DmgTile;
 import de.kswmd.gfxtool.tiles.TileExtractingMethod;
+import de.kswmd.gfxtool.utils.GfxUtils;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -15,7 +16,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -50,7 +50,7 @@ public class TilesetHolder {
      */
     public TilesetHolder(Path[] tilesetImagePaths, boolean unique, boolean fill) throws IOException {
         this.tilesetImagePaths = tilesetImagePaths;
-        tilesetImage = new BufferedImage(TILESET_WIDTH_IN_TILES * DmgTile.TILE_DIMENSION, TILESET_HEIGHT_IN_TILES * DmgTile.TILE_DIMENSION, BufferedImage.TYPE_INT_RGB);
+        tilesetImage = new BufferedImage(TILESET_WIDTH_IN_TILES * DmgTile.TILE_DIMENSION, TILESET_HEIGHT_IN_TILES * DmgTile.TILE_DIMENSION, BufferedImage.TYPE_INT_ARGB);
         List<BufferedImage> images = new ArrayList();
         int pixelAmount = 0;
         //validate
@@ -78,7 +78,7 @@ public class TilesetHolder {
         String[] lastColorPal = null;
         //collect
         for (BufferedImage tmpImg : images) {
-            lastColorPal = getColorPalFromImage(tmpImg);
+            lastColorPal = getColorPalArrayFromImage(tmpImg);
             List<DmgTile> tmpTileList = new ArrayList<>();
             for (int y = 0; y < tmpImg.getHeight(); y += DmgTile.TILE_DIMENSION) {
                 for (int x = 0; x < tmpImg.getWidth(); x += DmgTile.TILE_DIMENSION) {
@@ -133,11 +133,7 @@ public class TilesetHolder {
         }
     }
 
-    public String[] getColorPalFromTilesetImage() {
-        return getColorPalFromImage(tilesetImage);
-    }
-
-    public String[] getColorPalFromImage(BufferedImage image) {
+    public Set<String> getColorPalSetFromImage(BufferedImage image) {
         Set<String> colorPalSet = new HashSet<>();
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
@@ -145,7 +141,15 @@ public class TilesetHolder {
                 colorPalSet.add(Integer.toHexString(rgb));
             }
         }
-        return colorPalSet.toArray(String[]::new);
+        return colorPalSet;
+    }
+
+    public String[] getColorPalArrayFromImage(BufferedImage image) {
+        return getColorPalSetFromImage(image).toArray(String[]::new);
+    }
+
+    public String[] getColorPalArrayFromImage() {
+        return getColorPalSetFromImage(tilesetImage).toArray(String[]::new);
     }
 
     public Path[] getTilesetImagePath() {
@@ -183,7 +187,7 @@ public class TilesetHolder {
     private DmgTile createRandomDitstinctTile(Collection<DmgTile> tiles) {
         DmgTile dmgTile = null;
         do {
-            var bf = new BufferedImage(DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION, BufferedImage.TYPE_INT_RGB);
+            var bf = new BufferedImage(DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION, BufferedImage.TYPE_INT_ARGB);
             // create random values pixel by pixel
             for (int y = 0; y < bf.getHeight(); y++) {
                 for (int x = 0; x < bf.getWidth(); x++) {
@@ -207,11 +211,11 @@ public class TilesetHolder {
     private DmgTile createRandomDitstinctTileFromColorPal(Collection<DmgTile> tiles, String[] colorPal) {
         DmgTile dmgTile = null;
         do {
-            var bf = new BufferedImage(DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION, BufferedImage.TYPE_INT_RGB);
+            var bf = new BufferedImage(DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION, BufferedImage.TYPE_INT_ARGB);
             // create random values pixel by pixel
             for (int y = 0; y < bf.getHeight(); y++) {
                 for (int x = 0; x < bf.getWidth(); x++) {
-                    Color c = Color.decode("#"+colorPal[(int)(Math.random()*colorPal.length)].substring(2));
+                    Color c = GfxUtils.getColor(colorPal[(int) (Math.random() * colorPal.length)]);
                     // generating values less than 256
                     int a = c.getAlpha();
                     int r = c.getRed();
@@ -293,6 +297,7 @@ public class TilesetHolder {
         int y = 0;
         Collection<DmgTile> tiles = getDmgTiles();
         for (DmgTile t : tiles) {
+            var img = t.getTileImage();
             g.drawImage(t.getTileImage(), x, y, null);
             x = (x + DmgTile.TILE_DIMENSION);
             if (x % tilesetImage.getWidth() == 0) {

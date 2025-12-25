@@ -91,7 +91,7 @@ public class DmgTile {
                     case PIXEL_PERFECT:
                         String hex = Integer.toHexString(pixelColor);
                         for (int i = 0; i < colorPal.length; i++) {
-                            if (hex.endsWith(colorPal[i].toLowerCase())) {
+                            if (colorPal[i].toLowerCase().endsWith(hex)) {
                                 byteValue = i % 4;
                             }
                         }
