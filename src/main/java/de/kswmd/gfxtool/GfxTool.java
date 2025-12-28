@@ -39,8 +39,8 @@ public class GfxTool {
         options.addOption(Option.builder("conv")
                 .longOpt("convert")
                 .desc("Converts an image to colorpal defined")
-                .numberOfArgs(2)
-                .argName("/path/to/image.png> <hexcolor1,hexcolor2")
+                .numberOfArgs(3)
+                .argName("/path/to/image.png> </path/to/output.png> <hexcolor1,hexcolor2")
                 .get()
         );
 
@@ -131,11 +131,11 @@ public class GfxTool {
 
             if (cmd.hasOption("conv")) {
                 String[] values = cmd.getOptionValues("conv");
-                String vp = values[0];
-                Path p = Path.of(vp);
-                BufferedImage img = ImageIO.read(p.toFile());
-                img = GfxUtils.convertImagePixelsToColorPal(img, values[1].split(","));
-                ImageIO.write(img, "png", new File(vp.replaceAll("\\.png$", ".new.png")));
+                Path s = Path.of(values[0]);
+                Path o = Path.of(values[1]);
+                BufferedImage img = ImageIO.read(s.toFile());
+                img = GfxUtils.convertImagePixelsToColorPal(img, values[2].split(","));
+                ImageIO.write(img, "png", o.toFile());
             }
             
             if (cmd.hasOption("o")) {

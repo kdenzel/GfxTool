@@ -11,7 +11,7 @@ The tool is oriented at the gfxconv tool from the book "Gameboy coding adventure
 | ---      | ---       |
 | -crt --createTileSet | Generates a tileset png image from 3 specified images in $PWD: </path/to/sprites.png> </path/to/background.png> </path/to/window.png> |
 | -f --fill | Fills the sprite region and every following not defined tile with empty random generated pixels based on colorpalet from image before for option -crt |
-| -conv --convert | Converts an image to a colorpalette defined (maps every pixel depending on how close the pixel is to one of the values): </path/to/image.png> <hexcolor1,hexcolor2,hex3,hex4> (DMG only uses 4 colors) |
+| -conv --convert | Converts an image to a colorpalette defined (maps every pixel depending on how close the pixel is to one of the values): </path/to/src_image.png> </path/to/dest_img.png> <hexcolor1,hexcolor2,hex3,hex4> (DMG only uses 4 colors) |
 | -u --unique | Generates for option -o a tileset in gameboy format with unique tiles and for -crt with unique tiles inside the $PWD/tileset.png image. | 
 | -o --output | Creates the tileset in gameboy format based on the parameters: (/path/to/tileset.png)(/path/to/outputfile.2bpp) |
 | -c --colorPal     | defines the colorpalet by sending some hexadecimal color values or if no parameter is given the tool tries to look up the color palete out of the image files. If the -c argument is missing completely the tool generates the tileset depending on the grayscale of the image. |
