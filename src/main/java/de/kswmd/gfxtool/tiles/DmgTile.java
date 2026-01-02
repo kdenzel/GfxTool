@@ -86,13 +86,14 @@ public class DmgTile {
                 int g = (pixelColor >> 8) & 0xff;
                 int b = pixelColor & 0xff;
 
-                int byteValue = 0;
+                int byteValue = -1;
                 switch (extractingMethod) {
                     case PIXEL_PERFECT:
                         String hex = Integer.toHexString(pixelColor);
                         for (int i = 0; i < colorPal.length; i++) {
                             if (colorPal[i].toLowerCase().endsWith(hex)) {
                                 byteValue = i % 4;
+                                break;
                             }
                         }
                         break;
@@ -101,6 +102,10 @@ public class DmgTile {
                         float grayScale = ((0.299f * r) + (0.587f * g) + (0.114f * b)) * (a / 255f);
                         byteValue = (int) ((4 * grayScale) / 256f);
                         break;
+                }
+
+                if (byteValue < 0) {
+                    throw new IllegalStateException("The value " + byteValue + " is no possible value.");
                 }
 
                 switch (byteValue) {

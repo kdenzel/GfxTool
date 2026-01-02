@@ -15,7 +15,7 @@ The tool is oriented at the gfxconv tool from the book "Gameboy coding adventure
 | -u --unique | Generates for option -o a tileset in gameboy format with unique tiles and for -crt with unique tiles inside the $PWD/tileset.png image. | 
 | -o --output | Creates the tileset in gameboy format based on the parameters: (/path/to/tileset.png)(/path/to/outputfile.2bpp) |
 | -c --colorPal     | defines the colorpalet by sending some hexadecimal color values or if no parameter is given the tool tries to look up the color palete out of the image files. If the -c argument is missing completely the tool generates the tileset depending on the grayscale of the image. |
-| -scp --sortColorPalet     | has only effect if -c was specified. It automatically sorts the color values by grayscale. So bright pixels are mapped bright and vice versa. |
+| -scp --sortColorPalet     | has only effect if -c was specified. It automatically sorts the color values by grayscale. So bright pixels are mapped bright and vice versa. Optinal argument, if it equals "1" it will reverse the colorpalette. |
 | -t --tilemaps     | in combination with -o will map the tiles (8x8 pixel units) to the given tileset and create indices for it. You can pass as many image files as you'd like. The output name and path matches the input file but replaces the ending .png with .tlm |
 | -h --help     | prints an help message |
 

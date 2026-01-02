@@ -76,6 +76,8 @@ public class GfxTool {
         options.addOption(Option.builder("scp")
                 .longOpt("sortColorPalet")
                 .desc("Sorts the color palet by grayscale. Bright first Dark last.")
+                .optionalArg(true)
+                .argName("if \"1\" is set reverse the colorpalette")
                 .get()
         );
 
@@ -146,7 +148,8 @@ public class GfxTool {
                 String pngPath = values[0];
                 String outputPath = values[1];
 
-                TilesetHolder th = new TilesetHolder(Path.of(pngPath));
+                Path tilesetImagePath = Path.of(pngPath);
+                TilesetHolder th = new TilesetHolder(tilesetImagePath);
 
                 if (!th.isDimensionMultipleOf8()) {
                     throw new ParseException("Image-files dimensions (width and height) must be a multiple of 8");
@@ -162,7 +165,10 @@ public class GfxTool {
                     }
 
                     if (cmd.hasOption("scp")) {
-                        colorPal = GfxUtils.getSortedColorPalet(colorPal);
+                        String optionValue = cmd.getOptionValue("scp");
+                        //only reverse if the value equals 1
+                        boolean reverseColorValue = optionValue != null && optionValue.equals("1");
+                        colorPal = GfxUtils.getSortedColorPalet(colorPal, reverseColorValue);
                     }
 
                     th.initialize(TileExtractingMethod.PIXEL_PERFECT, colorPal);
@@ -174,6 +180,9 @@ public class GfxTool {
                 if (cmd.hasOption("u")) {
                     th.uniqueTilesOnly();
                 }
+                
+                //uncomment for debug purpose
+                //th.recreatePictureFromDmgTiles(tilesetImagePath.toString().replaceAll("\\.png$", "wtf.png"));
 
                 //{"9BBC0F", "8BAC0F", "306230", "0F380F"}
                 th.writeAllTilesTo2BppBinary(outputPath);

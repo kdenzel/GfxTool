@@ -261,8 +261,9 @@ public class TilesetHolder {
             BufferedImage bfimg = ImageIO.read(p.toFile());
             if (isDimensionMultipleOf8(bfimg)) {
                 OutputStream fos = new FileOutputStream(new File(fp.replaceAll("\\.png$", ".tlm")));
-                byte[] buffer = new byte[bfimg.getWidth() / DmgTile.TILE_DIMENSION];
+                int bs = bfimg.getWidth() / DmgTile.TILE_DIMENSION;
                 for (int y = 0; y < bfimg.getHeight(); y += DmgTile.TILE_DIMENSION) {
+                    byte[] buffer = new byte[bs];
                     int i = 0;
                     for (int x = 0; x < bfimg.getWidth(); x += DmgTile.TILE_DIMENSION) {
                         BufferedImage sub = bfimg.getSubimage(x, y, DmgTile.TILE_DIMENSION, DmgTile.TILE_DIMENSION);
@@ -270,7 +271,9 @@ public class TilesetHolder {
                         for (DmgTile t : dmgTiles) {
                             if (t.matches(sub)) {
                                 index = t.getIndex();
-                                break;
+                                //Do not break here cause if tile 0 is blank or tile in sprite region does match randomly 
+                                //iterate to the last matching tile so we do not reference to a tile in sprite region
+                                //break;
                             }
                         }
 

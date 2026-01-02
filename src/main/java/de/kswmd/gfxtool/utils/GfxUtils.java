@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.commons.cli.ParseException;
 
 /**
@@ -21,7 +20,7 @@ public class GfxUtils {
     private GfxUtils() {
     }
 
-    public static String[] getSortedColorPalet(String[] colorPal) throws ParseException {
+    public static String[] getSortedColorPalet(String[] colorPal, boolean reverseColors) throws ParseException {
         Map<String, Float> map = new HashMap<>();
         for (var c : colorPal) {
             String nc = c.strip();
@@ -40,8 +39,14 @@ public class GfxUtils {
         }
         List<Map.Entry<String, Float>> list = new ArrayList<>(map.entrySet());
         list.sort(Map.Entry.comparingByValue());
-        String colors = list.reversed().stream().map(e -> e.getKey()).collect(Collectors.joining(","));
-        return colors.split(",");
+        //do the reverse when reversed flag is not set cause it is vice versa
+        //the dmg gameboy interprets it this way so we have to reverse the list for
+        //original colors and for inversed colors we skip the reverse list
+        if (!reverseColors) {
+            list = list.reversed();
+        }
+        String[] colors = list.stream().map(e -> e.getKey()).toArray(String[]::new);
+        return colors;
     }
 
     public static double colorDistance(Color a, Color b) {
